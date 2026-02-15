@@ -3,6 +3,8 @@ import { getCategories } from "../src/services/categories";
 import { getProducts } from "../src/services/products";
 import { getBrands } from "../src/services/brands";
 
+export const dynamic = 'force-dynamic';
+
 export default async function HomePage() {
   // Obtenemos los datos de Payload
   const productsData = await getProducts(); // Esto se ejecutará en el servidor, no en el cliente

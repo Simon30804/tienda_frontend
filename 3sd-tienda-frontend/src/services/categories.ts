@@ -2,8 +2,9 @@ const PAYLOAD_URL = process.env.NEXT_PUBLIC_PAYLOAD_URL || 'http://localhost:300
 
 export async function getCategories() {
   try {
+    // Estoy haciendo prubas, las categorias estna cambiando, asi que no quiero cache por ahora
     const res = await fetch(`${PAYLOAD_URL}/api/categories?limit=100`, {
-      next: { revalidate: 3600 }, // Caché de una hora (las categorías no cambian tanto)
+      next: { revalidate: 0 }, // No caché
     });
 
     if (!res.ok) throw new Error('Error al obtener categorías');

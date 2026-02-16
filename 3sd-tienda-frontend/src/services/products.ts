@@ -1,8 +1,10 @@
 const PAYLOAD_URL = process.env.NEXT_PUBLIC_PAYLOAD_URL;
 
+
+// Servicio para obtener productos desde Payload CMS, sin embargo en Payload tengo 49 productos creados, y en la pagina solo se muestran 10, esto es porque el endpoint de Payload tiene un limite de 10 por defecto, asi que hay que agregar el parametro limit=100 para obtener todos los productos, o hacer paginacion
 export async function getProducts() {
   try {
-    const res = await fetch(`${PAYLOAD_URL}/api/products?depth=1`, { 
+    const res = await fetch(`${PAYLOAD_URL}/api/products?depth=1&limit=100`, { 
       cache: 'no-store' // Forzamos a que no use caché para la prueba
     });
     const data = await res.json();
@@ -16,7 +18,7 @@ export async function getProducts() {
 
 export async function getProductById(id: string) {
   try {
-    const res = await fetch(`${PAYLOAD_URL}/api/products/${id}?depth=1`, { 
+    const res = await fetch(`${PAYLOAD_URL}/api/products/${id}?depth=1&limit=100`, { 
       cache: 'no-store' // Forzamos a que no use caché para la prueba
     });
     const data = await res.json();

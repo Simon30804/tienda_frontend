@@ -12,7 +12,7 @@ export default async function HomePage() {
   const brands = await getBrands(); // Esto se ejecutará en el servidor, no en el cliente
 
   return <Home categories={categories}
-          initialProducts={productsData} // Aquí deberías pasar los productos obtenidos
-          brands={brands} // Aquí deberías pasar las marcas obtenidas
+          initialProducts={productsData} 
+          brands={brands} 
   />;
 }

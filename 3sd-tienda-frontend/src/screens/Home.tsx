@@ -35,7 +35,7 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
   const [selectedBrand, setSelectedBrand] = useState("Todas");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 5000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [sortOption, setSortOption] = useState("default");
 

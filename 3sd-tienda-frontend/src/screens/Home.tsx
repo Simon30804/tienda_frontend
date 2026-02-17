@@ -22,7 +22,7 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
   // 2. Filtramos productos no publicados (published = 0)
   const products = useMemo(() => {
     return (initialProducts || [])
-      .filter((product) => product.published !== 0)
+      .filter((product) => String(product?.published).trim() !== "0")
       .map(mapPayloadToFigma);
   }, [initialProducts]);
   

@@ -32,7 +32,10 @@ export function Checkout() {
       });
 
       if (!response.ok) {
-        throw new Error("Error al crear la sesión de pago");
+        const errorPayload = await response.json().catch(() => null);
+        throw new Error(
+          errorPayload?.error || "Error al crear la sesión de pago"
+        );
       }
 
       const data = await response.json();

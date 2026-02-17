@@ -17,6 +17,19 @@ function isValidHttpUrl(value: string) {
   }
 }
 
+function normalizeBaseUrl(value: string) {
+  const trimmedValue = value.trim().replace(/\/$/, "");
+  if (!trimmedValue) {
+    return "";
+  }
+
+  const withScheme = /^https?:\/\//i.test(trimmedValue)
+    ? trimmedValue
+    : `https://${trimmedValue}`;
+
+  return isValidHttpUrl(withScheme) ? withScheme : "";
+}
+
 export async function POST(request: NextRequest) {
   try {
     const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
@@ -43,10 +56,16 @@ export async function POST(request: NextRequest) {
       ? `${forwardedProto ?? "http"}://${forwardedHost}`
       : request.nextUrl.origin;
 
-    const appUrl = (process.env.NEXT_PUBLIC_APP_URL || requestOrigin).replace(
-      /\/$/,
-      ""
-    );
+    const envAppUrl = normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL || "");
+    const normalizedRequestOrigin = normalizeBaseUrl(requestOrigin);
+    const appUrl = envAppUrl || normalizedRequestOrigin;
+
+    if (!appUrl) {
+      return NextResponse.json(
+        { error: "No se pudo resolver una URL base válida para Stripe" },
+        { status: 500 }
+      );
+    }
 
     const stripe = new Stripe(stripeSecretKey);
 

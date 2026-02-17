@@ -3,16 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { loadStripe } from "@stripe/stripe-js"; 
 import { Header } from "../components/Header";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 import { useCart } from "../context/CartContext";
-import { CreditCard, MapPin, Package, Check } from "lucide-react";
+import { CreditCard, Package } from "lucide-react";
 import { toast } from "sonner";
-
-const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
 
 export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
@@ -21,14 +16,13 @@ export function Checkout() {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const shippingCost = totalPrice > 500 ? 0 : 25;
-  const tax = totalPrice * 0.21; // IVA del 21%
+  const tax = totalPrice * 0.21;
   const finalTotal = totalPrice + shippingCost + tax;
 
   const handleCheckout = async () => {
     setIsProcessing(true);
 
     try {
-      // Llamar a tu API para crear sesión de Stripe
       const response = await fetch("/api/checkout", {
         method: "POST",
         headers: {
@@ -42,16 +36,16 @@ export function Checkout() {
       }
 
       const data = await response.json();
-      const { sessionId } = data;
+      const { url } = data;
 
-      if (!sessionId) {
-        toast.error("No se pudo obtener la sesión de pago");
+      if (!url) {
+        toast.error("No se pudo obtener la URL de pago");
         setIsProcessing(false);
         return;
       }
 
-      // Redirigir directamente a Stripe Checkout
-      window.location.href = `https://checkout.stripe.com/pay/${sessionId}`;
+      // Redirigir directamente a la URL de Stripe
+      window.location.href = url;
       
     } catch (error: any) {
       toast.error(error.message || "Error al procesar el pago");
@@ -75,7 +69,7 @@ export function Checkout() {
     );
   }
 
-   return (
+  return (
     <div className="min-h-screen bg-gray-50">
       <Header onSearch={setSearchQuery} searchQuery={searchQuery} />
 
@@ -83,7 +77,6 @@ export function Checkout() {
         <h1 className="text-3xl font-bold text-gray-900 mb-8">Checkout</h1>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Order Summary */}
           <div className="lg:col-span-3">
             <div className="bg-white rounded-xl border border-gray-200 p-6">
               <div className="flex items-center space-x-3 mb-6">

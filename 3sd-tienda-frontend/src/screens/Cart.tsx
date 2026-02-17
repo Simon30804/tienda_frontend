@@ -16,7 +16,7 @@ export function Cart() {
   const [searchQuery, setSearchQuery] = useState("");
 
   const shippingCost = totalPrice > 500 ? 0 : 25;
-  const tax = totalPrice * 0.16;
+  const tax = totalPrice * 0.21; // IVA del 21%
   const finalTotal = totalPrice + shippingCost + tax;
 
   const handleCheckout = () => {

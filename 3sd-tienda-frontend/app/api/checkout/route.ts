@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       payment_method_types: ["card"],
       line_items: lineItems,
       mode: "payment",
-      success_url: `${process.env.NEXT_PUBLIC_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.NEXT_PUBLIC_URL}/checkout`,
+      success_url: `${process.env.NEXT_PUBLIC_PAYLOAD_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${process.env.NEXT_PUBLIC_PAYLOAD_URL}/checkout`,
       shipping_address_collection: {
         allowed_countries: ["ES", "FR", "IT", "PT"],
       },

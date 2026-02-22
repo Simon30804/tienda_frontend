@@ -6,6 +6,7 @@ import { Product } from "../data/products";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
 import { useCart } from "../context/CartContext";
+import { useAuth } from "../context/AuthContext";
 import { toast } from "sonner";
 import { ImageWithFallback } from "./figma/ImageWithFallback";
 
@@ -15,6 +16,11 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const { discount } = useAuth();
+  const hasDiscount = discount > 0;
+  const discountedPrice = hasDiscount
+    ? product.price * (1 - discount / 100)
+    : product.price;
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -58,13 +64,29 @@ export function ProductCard({ product }: ProductCardProps) {
 
         {/* Price */}
         <div className="flex items-baseline space-x-2">
-          <span className="text-2xl font-bold text-gray-900">
-            €{product.price.toLocaleString()}
-          </span>
-          {product.originalPrice && (
-            <span className="text-sm text-gray-500 line-through">
-              €{product.originalPrice.toLocaleString()}
-            </span>
+          {hasDiscount ? (
+            <>
+              <span className="text-2xl font-bold text-green-600">
+                €{discountedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
+              <span className="text-sm text-gray-500 line-through">
+                €{product.price.toLocaleString()}
+              </span>
+              <Badge variant="secondary" className="bg-green-100 text-green-700 text-xs">
+                -{discount}%
+              </Badge>
+            </>
+          ) : (
+            <>
+              <span className="text-2xl font-bold text-gray-900">
+                €{product.price.toLocaleString()}
+              </span>
+              {product.originalPrice && (
+                <span className="text-sm text-gray-500 line-through">
+                  €{product.originalPrice.toLocaleString()}
+                </span>
+              )}
+            </>
           )}
         </div>
 

@@ -1,0 +1,14 @@
+# Dependencias
+node_modules
+npm-debug.log
+
+# Archivos de build de Next.js
+.next
+out
+build
+
+# Control de versiones y entorno
+.git
+.env*
+Dockerfile
+.dockerignore

@@ -11,6 +11,7 @@ import { ChevronLeft, Check } from "lucide-react";
 import { ProductActions } from "../components/ProductActions";
 import { ImageGallery } from "@/src/components/ImageGallery";
 import { RelatedProducts } from "@/src/components/RelatedProducts";
+import { useAuth } from "@/src/context/AuthContext";
 
 interface ProductPageProps {
   product: any;
@@ -19,6 +20,7 @@ interface ProductPageProps {
 export function ProductDetail({ product }: ProductPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [sanitizedSpecifications, setSanitizedSpecifications] = useState<string | null>(null);
+  const { discount } = useAuth();
 
   if (!product) {
     return <div>Producto no encontrado</div>;
@@ -39,6 +41,10 @@ export function ProductDetail({ product }: ProductPageProps) {
 
   const mappedProduct = mapPayloadToFigma(product);
   const specs = mappedProduct.specifications;
+  const hasDiscount = discount > 0;
+  const discountedPrice = hasDiscount
+    ? mappedProduct.price * (1 - discount / 100)
+    : mappedProduct.price;
 
   useEffect(() => {
     if (specs) {
@@ -96,13 +102,29 @@ export function ProductDetail({ product }: ProductPageProps) {
 
               {/* Price */}
               <div className="flex items-baseline space-x-3 mb-6">
-                <span className="text-4xl font-bold text-gray-900">
-                  €{mappedProduct.price.toLocaleString()}
-                </span>
-                {mappedProduct.oldPrice && (
-                  <span className="text-xl text-gray-500 line-through">
-                    €{mappedProduct.oldPrice.toLocaleString()}
-                  </span>
+                {hasDiscount ? (
+                  <>
+                    <span className="text-4xl font-bold text-green-600">
+                      €{discountedPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                    <span className="text-xl text-gray-500 line-through">
+                      €{mappedProduct.price.toLocaleString()}
+                    </span>
+                    <Badge variant="secondary" className="bg-green-100 text-green-700">
+                      -{discount}%
+                    </Badge>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-4xl font-bold text-gray-900">
+                      €{mappedProduct.price.toLocaleString()}
+                    </span>
+                    {mappedProduct.oldPrice && (
+                      <span className="text-xl text-gray-500 line-through">
+                        €{mappedProduct.oldPrice.toLocaleString()}
+                      </span>
+                    )}
+                  </>
                 )}
               </div>
 

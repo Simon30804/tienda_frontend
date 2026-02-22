@@ -10,16 +10,23 @@ import { Label } from "../components/ui/label";
 import { useCart } from "../context/CartContext";
 import { CreditCard, MapPin, Package, Check } from "lucide-react";
 import { toast } from "sonner";
+import { useAuth } from "../context/AuthContext";
 
 export function Checkout() {
   const { items, totalPrice, clearCart } = useCart();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const { discount } = useAuth();
+  const hasDiscount = discount > 0;
 
-  const shippingCost = totalPrice > 500 ? 0 : 25;
-  const tax = totalPrice * 0.16;
-  const finalTotal = totalPrice + shippingCost + tax;
+  const discountedTotalPrice = hasDiscount
+    ? totalPrice * (1 - discount / 100)
+    : totalPrice;
+  const savings = totalPrice - discountedTotalPrice;
+  const shippingCost = discountedTotalPrice > 500 ? 0 : 25;
+  const tax = discountedTotalPrice * 0.21;
+  const finalTotal = discountedTotalPrice + shippingCost + tax;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -243,9 +250,20 @@ export function Checkout() {
                       <p className="text-sm text-gray-500">
                         Cantidad: {item.quantity}
                       </p>
-                      <p className="text-sm font-medium text-gray-900">
-                        ${(item.price * item.quantity).toLocaleString()}
-                      </p>
+                      {hasDiscount ? (
+                        <>
+                          <p className="text-sm font-medium text-green-600">
+                            €{(item.price * (1 - discount / 100) * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </p>
+                          <p className="text-xs text-gray-400 line-through">
+                            €{(item.price * item.quantity).toLocaleString()}
+                          </p>
+                        </>
+                      ) : (
+                        <p className="text-sm font-medium text-gray-900">
+                          €{(item.price * item.quantity).toLocaleString()}
+                        </p>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -255,29 +273,37 @@ export function Checkout() {
                 <div className="flex justify-between text-gray-700">
                   <span>Subtotal</span>
                   <span className="font-medium">
-                    ${totalPrice.toLocaleString()}
+                    €{totalPrice.toLocaleString()}
                   </span>
                 </div>
+                {hasDiscount && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Descuento ({discount}%)</span>
+                    <span className="font-medium">
+                      -€{savings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </span>
+                  </div>
+                )}
                 <div className="flex justify-between text-gray-700">
                   <span>Envío</span>
                   <span className="font-medium">
                     {shippingCost === 0 ? (
                       <span className="text-green-600">Gratis</span>
                     ) : (
-                      `$${shippingCost.toLocaleString()}`
+                      `€${shippingCost.toLocaleString()}`
                     )}
                   </span>
                 </div>
                 <div className="flex justify-between text-gray-700">
                   <span>IVA (16%)</span>
                   <span className="font-medium">
-                    ${tax.toFixed(2).toLocaleString()}
+                    €{tax.toFixed(2).toLocaleString()}
                   </span>
                 </div>
                 <div className="border-t border-gray-200 pt-3">
                   <div className="flex justify-between text-lg font-bold text-gray-900">
                     <span>Total</span>
-                    <span>${finalTotal.toFixed(2).toLocaleString()}</span>
+                    <span>€{finalTotal.toFixed(2).toLocaleString()}</span>
                   </div>
                 </div>
               </div>

@@ -1,23 +1,32 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Header } from "../components/Header";
 import { CategoryBar } from "../components/CategoryBar";
 import { Sidebar } from "../components/Sidebar";
 import { ProductCard } from "../components/ProductCard";
 //import { products } from "../data/products";
 import { Button } from "../components/ui/button";
-import { SlidersHorizontal, ChevronRight } from "lucide-react";
+import { SlidersHorizontal, ChevronRight, ChevronLeft } from "lucide-react";
 import { Badge } from "../components/ui/badge";
 import { mapPayloadToFigma } from "../utils/productMapper";
+import type { PaginatedProductsResult } from "../services/products";
 
 interface HomeProps {
   categories: any[];
   initialProducts: any[]; // Estos son los productos reales, que viene de Payload
   brands: any[]; // Estas son las marcas reales, que viene de Payload
+  pagination: PaginatedProductsResult;
+  selectedCategoryId: string;
+  selectedBrandId: string;
+  initialSearchQuery: string;
+  initialSortOption: string;
 }
 
-export function Home({ categories, initialProducts, brands }: HomeProps) {
+export function Home({ categories, initialProducts, brands, pagination, selectedCategoryId, selectedBrandId, initialSearchQuery, initialSortOption }: HomeProps) {
+  const router = useRouter();
   // 1. Transformamos los productos de Payload al formato de Figma inmediatamente
   // 2. Filtramos productos no publicados (published = 0)
   const products = useMemo(() => {
@@ -28,36 +37,71 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
   
   // 3. Preparar lista de marcas desde Payload
   const brandsList = useMemo(() => {
-    const brandNames = (brands || []).map((brand: any) => brand.name);
-    return ["Todas", ...brandNames];
+    return [
+      { id: "all", name: "Todas" },
+      ...(brands || []).map((brand: any) => ({
+        id: String(brand?.id ?? ""),
+        name: String(brand?.name ?? "Sin marca"),
+      })),
+    ];
   }, [brands]);
   
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("Todos");
-  const [selectedBrand, setSelectedBrand] = useState("Todas");
-  const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
+  const [searchQuery, setSearchQuery] = useState(initialSearchQuery || "");
+  const [selectedCategoryName, setSelectedCategoryName] = useState(() => {
+    if (!selectedCategoryId || selectedCategoryId === "all") {
+      return "Todos";
+    }
+
+    const selected = (categories || []).find(
+      (category: any) => String(category?.id) === selectedCategoryId
+    );
+
+    return selected?.name || "Todos";
+  });
+
+  useEffect(() => {
+    if (!selectedCategoryId || selectedCategoryId === "all") {
+      setSelectedCategoryName("Todos");
+      return;
+    }
+
+    const selected = (categories || []).find(
+      (category: any) => String(category?.id) === selectedCategoryId
+    );
+
+    setSelectedCategoryName(selected?.name || "Todos");
+  }, [categories, selectedCategoryId]);
+  const [selectedBrandName, setSelectedBrandName] = useState(() => {
+    if (!selectedBrandId || selectedBrandId === "all") {
+      return "Todas";
+    }
+
+    const selected = (brands || []).find(
+      (brand: any) => String(brand?.id) === selectedBrandId
+    );
+
+    return selected?.name || "Todas";
+  });
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [sortOption, setSortOption] = useState("default");
+  const [sortOption, setSortOption] = useState(initialSortOption || "default");
+
+  useEffect(() => {
+    setSearchQuery(initialSearchQuery || "");
+  }, [initialSearchQuery]);
+
+  useEffect(() => {
+    setSortOption(initialSortOption || "default");
+  }, [initialSortOption]);
 
   const filteredProducts = useMemo(() => {
     const result = products.filter((product) => {
-      const matchesSearch =
-        searchQuery === "" ||
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        product.category.toLowerCase().includes(searchQuery.toLowerCase());
-
       const matchesCategory =
-        selectedCategory === "Todos" || product.category === selectedCategory;
+        selectedCategoryName === "Todos" || product.category === selectedCategoryName;
 
       const matchesBrand =
-        selectedBrand === "Todas" || product.brand === selectedBrand;
+        selectedBrandName === "Todas" || product.brand === selectedBrandName;
 
-      const matchesPrice =
-        product.price >= priceRange[0] && product.price <= priceRange[1];
-
-      return matchesSearch && matchesCategory && matchesBrand && matchesPrice;
+      return matchesCategory && matchesBrand;
     });
 
     if (sortOption === "default") {
@@ -83,24 +127,124 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
     }
 
     return sorted;
-  }, [products, searchQuery, selectedCategory, selectedBrand, priceRange, sortOption]);
+  }, [products, selectedCategoryName, selectedBrandName, sortOption]);
+
+  useEffect(() => {
+    if (!selectedBrandId || selectedBrandId === "all") {
+      setSelectedBrandName("Todas");
+      return;
+    }
+
+    const selected = (brands || []).find(
+      (brand: any) => String(brand?.id) === selectedBrandId
+    );
+
+    setSelectedBrandName(selected?.name || "Todas");
+  }, [brands, selectedBrandId]);
 
   //const featuredProducts = products.filter((p) => p.featured);
+  const pageNumbers = useMemo(() => {
+    const total = pagination?.totalPages || 1;
+    const current = pagination?.page || 1;
+
+    if (total <= 5) {
+      return Array.from({ length: total }, (_, index) => index + 1);
+    }
+
+    if (current <= 3) {
+      return [1, 2, 3, 4, 5];
+    }
+
+    if (current >= total - 2) {
+      return [total - 4, total - 3, total - 2, total - 1, total];
+    }
+
+    return [current - 2, current - 1, current, current + 1, current + 2];
+  }, [pagination]);
+
+  const buildUrl = ({
+    page,
+    categoryId,
+    brandId,
+    search,
+    sort,
+  }: {
+    page: number;
+    categoryId?: string;
+    brandId?: string;
+    search?: string;
+    sort?: string;
+  }) => {
+    const params = new URLSearchParams();
+
+    if (categoryId && categoryId !== "all") {
+      params.set("category", categoryId);
+    }
+
+    if (brandId && brandId !== "all") {
+      params.set("brand", brandId);
+    }
+
+    if (search && search.trim()) {
+      params.set("search", search.trim());
+    }
+
+    if (sort && sort !== "default") {
+      params.set("sort", sort);
+    }
+
+    params.set("page", String(page));
+
+    return `/?${params.toString()}`;
+  };
+
+  const paginationBasePath = buildUrl({
+    page: 1,
+    categoryId: selectedCategoryId,
+    brandId: selectedBrandId,
+    search: searchQuery,
+    sort: sortOption,
+  }).replace(/page=1$/, "page=");
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header onSearch={setSearchQuery} searchQuery={searchQuery} />
+      <Header
+        onSearch={(query) => {
+          setSearchQuery(query);
+          router.replace(
+            buildUrl({
+              page: 1,
+              categoryId: selectedCategoryId,
+              brandId: selectedBrandId,
+              search: query,
+              sort: sortOption,
+            })
+          );
+        }}
+        searchQuery={searchQuery}
+      />
       <CategoryBar
-        selectedCategory={selectedCategory}
-        onCategoryChange={setSelectedCategory}
+        selectedCategoryId={selectedCategoryId}
+        onCategoryChange={(category) => {
+          setSelectedCategoryName(category.name);
+          router.push(
+            buildUrl({
+              page: 1,
+              categoryId: category.id,
+              brandId: selectedBrandId,
+              search: searchQuery,
+              sort: sortOption,
+            })
+          );
+        }}
         categories={categories} // Pasamos las categorías al CategoryBar
       />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Hero Banner - Only show when no search/filters */}
         {searchQuery === "" &&
-          selectedCategory === "Todos" &&
-          selectedBrand === "Todas" && (
+          selectedCategoryName === "Todos" &&
+          selectedBrandName === "Todas" && (
             <div className="mb-8 bg-gradient-to-r from-green-600 to-emerald-600 rounded-2xl overflow-hidden">
               <div className="px-8 py-12 md:py-16">
                 <div className="max-w-2xl">
@@ -127,8 +271,19 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
         <div className="flex gap-8">
           {/* Sidebar */}
           <Sidebar
-            selectedBrand={selectedBrand}
-            onBrandChange={setSelectedBrand}
+            selectedBrandId={selectedBrandId}
+            onBrandChange={(brand) => {
+              setSelectedBrandName(brand.name);
+              router.push(
+                buildUrl({
+                  page: 1,
+                  categoryId: selectedCategoryId,
+                  brandId: brand.id,
+                  search: searchQuery,
+                  sort: sortOption,
+                })
+              );
+            }}
             brands={brandsList}
             isMobileOpen={isMobileSidebarOpen}
             onMobileClose={() => setIsMobileSidebarOpen(false)}
@@ -160,9 +315,24 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
                   {filteredProducts.length}{" "}
                   {filteredProducts.length === 1 ? "producto" : "productos"}
                 </span>
+                <span className="text-sm text-gray-600">
+                  Página {pagination.page} de {pagination.totalPages}
+                </span>
                 <select
                   value={sortOption}
-                  onChange={(event) => setSortOption(event.target.value)}
+                  onChange={(event) => {
+                    const nextSort = event.target.value;
+                    setSortOption(nextSort);
+                    router.push(
+                      buildUrl({
+                        page: 1,
+                        categoryId: selectedCategoryId,
+                        brandId: selectedBrandId,
+                        search: searchQuery,
+                        sort: nextSort,
+                      })
+                    );
+                  }}
                   className="text-sm border border-gray-300 rounded-md px-2 py-1 bg-white"
                   aria-label="Ordenar productos"
                 >
@@ -177,11 +347,46 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
 
             {/* Products Grid */}
             {filteredProducts.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                {filteredProducts.map((product) => (
-                  <ProductCard key={product.id} product={product} />
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {filteredProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
+
+                {pagination.totalPages > 1 && (
+                  <div className="mt-8 flex flex-wrap items-center justify-center gap-2">
+                    <Button asChild variant="outline" size="sm" disabled={!pagination.hasPrevPage}>
+                      <Link href={`${paginationBasePath}${pagination.prevPage ?? 1}`} aria-disabled={!pagination.hasPrevPage}>
+                        <ChevronLeft className="w-4 h-4 mr-1" />
+                        Anterior
+                      </Link>
+                    </Button>
+
+                    {pageNumbers.map((pageNumber) => {
+                      const isCurrent = pageNumber === pagination.page;
+
+                      return (
+                        <Button
+                          key={pageNumber}
+                          asChild
+                          variant={isCurrent ? "default" : "outline"}
+                          size="sm"
+                        >
+                          <Link href={`${paginationBasePath}${pageNumber}`}>{pageNumber}</Link>
+                        </Button>
+                      );
+                    })}
+
+                    <Button asChild variant="outline" size="sm" disabled={!pagination.hasNextPage}>
+                      <Link href={`${paginationBasePath}${pagination.nextPage ?? pagination.totalPages}`} aria-disabled={!pagination.hasNextPage}>
+                        Siguiente
+                        <ChevronRight className="w-4 h-4 ml-1" />
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-center py-12">
                 <p className="text-gray-500 text-lg">
@@ -191,8 +396,10 @@ export function Home({ categories, initialProducts, brands }: HomeProps) {
                   variant="link"
                   onClick={() => {
                     setSearchQuery("");
-                    setSelectedCategory("Todos");
-                    setSelectedBrand("Todas");
+                    setSelectedCategoryName("Todos");
+                    setSelectedBrandName("Todas");
+                    setSortOption("default");
+                    router.push("/?page=1");
                   }}
                   className="mt-4"
                 >

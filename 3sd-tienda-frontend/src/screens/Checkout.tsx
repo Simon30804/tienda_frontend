@@ -17,7 +17,10 @@ export function Checkout() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+
+  const auth = useAuth();
   const { discount } = useAuth();
+  const userEmail = auth.user?.email ?? "";
   const hasDiscount = discount > 0;
 
   const discountedTotalPrice = hasDiscount
@@ -28,19 +31,63 @@ export function Checkout() {
   const tax = discountedTotalPrice * 0.21;
   const finalTotal = discountedTotalPrice + shippingCost + tax;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessing) return;
+
+    if(!userEmail) {
+      toast.error("No hay sesión activa", {
+        description: "Inicia sesión para completar el pedido."
+      });
+      return;
+    }
+
+    const cartItems = items.map(item => {
+    console.log("Item del carrito:", item);  // ← VER QUÉ DATOS TIENE
+    return {
+      productName: item.name ,
+      qty: item.quantity,
+    };
+  });
+
+  console.log("CartItems mapeados:", cartItems);  // ← VER RESULTADO
+  console.log("Filtrados:", cartItems.filter((x) => x.productName && x.qty > 0));  // ← VER AFTER FILTER
+
+  if (!cartItems.length) {
+    toast.error("Carrito inválido");
+    return;
+  }
+
     setIsProcessing(true);
 
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false);
-      toast.success("¡Pedido realizado con éxito!", {
-        description: "Recibirás un correo de confirmación pronto.",
+    try {
+      const res = await fetch("/api/dolibarr/pedido", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: userEmail, // automático desde sesión
+          cartItems,
+        }),
       });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.details || data?.error || "Error");
+
+      toast.success("¡Pedido realizado con éxito!", {
+        description: `Pedido ${data.ref} creado correctamente.`,
+      });
+
       clearCart();
       router.push("/");
-    }, 2000);
+    } catch (err: any) {
+      toast.error("No se pudo crear el pedido", {
+        description: err?.message || "Inténtalo de nuevo.",
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   if (items.length === 0) {
@@ -102,13 +149,7 @@ export function Checkout() {
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="email">Correo Electrónico</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="juan@ejemplo.com"
-                      required
-                      className="mt-1"
-                    />
+                    <Input id="email" value={userEmail} disabled className="mt-1 bg-gray-100" />
                   </div>
                   <div className="sm:col-span-2">
                     <Label htmlFor="address">Dirección</Label>

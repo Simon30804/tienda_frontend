@@ -1,16 +1,21 @@
 import { Button } from "./ui/button";
 import { X } from "lucide-react";
 
+interface BrandOption {
+  id: string;
+  name: string;
+}
+
 interface SidebarProps {
-  selectedBrand: string;
-  onBrandChange: (brand: string) => void;
-  brands: string[];
+  selectedBrandId: string;
+  onBrandChange: (brand: BrandOption) => void;
+  brands: BrandOption[];
   isMobileOpen?: boolean;
   onMobileClose?: () => void;
 }
 
 export function Sidebar({
-  selectedBrand,
+  selectedBrandId,
   onBrandChange,
   brands,
   isMobileOpen,
@@ -34,15 +39,15 @@ export function Sidebar({
         <div className="space-y-1">
           {brands.map((brand) => (
             <button
-              key={brand}
+              key={brand.id}
               onClick={() => onBrandChange(brand)}
               className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                selectedBrand === brand
+                selectedBrandId === brand.id
                   ? "bg-green-50 text-green-700 font-medium"
                   : "text-gray-700 hover:bg-gray-50"
               }`}
             >
-              {brand}
+              {brand.name}
             </button>
           ))}
         </div>
@@ -53,7 +58,7 @@ export function Sidebar({
         variant="outline"
         className="w-full"
         onClick={() => {
-          onBrandChange("Todas");
+          onBrandChange({ id: "all", name: "Todas" });
         }}
       >
         Limpiar Filtros
